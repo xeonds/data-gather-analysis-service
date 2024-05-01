@@ -10,6 +10,10 @@ all: gen linux-amd64
 linux-amd64: 
 	GOOS=linux GOARCH=amd64 cd analysis && $(GOBUILD) -o ../$(BINDIR)/$(NAME)-analysis-$@
 	GOOS=linux GOARCH=amd64 cd gather && $(GOBUILD) -o ../$(BINDIR)/$(NAME)-gather-$@
+	GOOS=linux GOARCH=amd64 cd display && $(GOBUILD) -o ../$(BINDIR)/$(NAME)-display-$@
 
 web:
 	cd display && pnpm i && pnpm run build --outDir=../$(BINDIR)/dist --emptyOutDir
+
+clean:
+	rm -rf $(BINDIR)/*

@@ -1,0 +1,54 @@
+version: '3'
+services:
+  rabbitmq:
+    image: rabbitmq:3.8.17-management
+    ports:
+      - 5672:5672
+      - 15672:15672
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    environment:
+      - RABBITMQ_DEFAULT_USER=admin
+      - RABBITMQ_DEFAULT_PASS=admin
+
+  gather:
+    image: ubuntu:latest
+    working_dir: /app
+    command: /app/data-gather-analysis-gather-linux-amd64
+    volumes:
+      - ./build:/app
+      - /usr/share/zoneinfo/Asia/Shanghai:/etc/localtime:ro
+    ports:
+      - "8001:8001"
+    restart: always
+    stdin_open: true
+    tty: true
+
+  analysis:
+    image: ubuntu:latest
+    working_dir: /app
+    command: /app/data-gather-analysis-analysis-linux-amd64
+    volumes:
+      - ./build:/app
+      - /usr/share/zoneinfo/Asia/Shanghai:/etc/localtime:ro
+    ports:
+      - "8002:8002"
+    restart: always
+    stdin_open: true
+    tty: true
+
+  display:
+    image: ubuntu:latest
+    working_dir: /app
+    command: /app/data-gather-analysis-display-linux-amd64
+    volumes:
+      - ./build:/app
+      - /usr/share/zoneinfo/Asia/Shanghai:/etc/localtime:ro
+    ports:
+      - "8003:8003"
+    restart: always
+    stdin_open: true
+    tty: true
+
+volumes:
+  rabbitmq_data:
