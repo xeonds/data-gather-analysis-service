@@ -5,8 +5,6 @@ services:
     ports:
       - 5672:5672
       - 15672:15672
-    volumes:
-      - rabbitmq_data:/var/lib/rabbitmq
     environment:
       - RABBITMQ_DEFAULT_USER=admin
       - RABBITMQ_DEFAULT_PASS=admin
@@ -23,6 +21,8 @@ services:
     restart: always
     stdin_open: true
     tty: true
+    depends_on:
+      - rabbitmq
 
   analysis:
     image: ubuntu:latest
@@ -36,6 +36,8 @@ services:
     restart: always
     stdin_open: true
     tty: true
+    depends_on:
+      - rabbitmq
 
   display:
     image: ubuntu:latest
@@ -49,6 +51,5 @@ services:
     restart: always
     stdin_open: true
     tty: true
-
-volumes:
-  rabbitmq_data:
+    depends_on:
+      - rabbitmq

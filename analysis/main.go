@@ -1,16 +1,16 @@
-// data_analyzer.go
-
 package main
 
 import (
+	"data-gather-analysis-service/config"
+	"data-gather-analysis-service/lib"
 	"fmt"
 
-	"github.com/streadway/amqp" // 导入 RabbitMQ 客户端库
+	"github.com/streadway/amqp"
 )
 
 func main() {
-	// 连接 RabbitMQ 服务器
-	conn, err := amqp.Dial("amqp://guest:guest@localhost:5672/")
+	config := lib.LoadConfig[config.Config]()
+	conn, err := amqp.Dial(config.MQaddr)
 	if err != nil {
 		panic(err)
 	}

@@ -1,10 +1,13 @@
 package lib
 
 import (
+	"embed"
 	"errors"
 	"log"
+	"net/http"
 	"os"
 
+	"github.com/gin-gonic/gin"
 	"github.com/spf13/viper"
 	"gopkg.in/yaml.v2"
 	"gorm.io/driver/mysql"
@@ -69,4 +72,8 @@ func LoadConfig[Config any]() *Config {
 		log.Fatal(errors.New("config file parse failed"))
 	}
 	return config
+}
+
+func AddStaticFS(router *gin.Engine, fs embed.FS) {
+	router.NoRoute(gin.WrapH(http.FileServer(http.FS(fs))))
 }
