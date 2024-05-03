@@ -5,6 +5,7 @@ import (
 	"data-gather-analysis-service/lib"
 	"data-gather-analysis-service/model"
 	"encoding/json"
+	"log"
 	"math/rand"
 	"time"
 
@@ -19,7 +20,7 @@ func detector(id int) func(*amqp.Channel, amqp.Queue) {
 		}
 		data, err := json.Marshal(msg)
 		if err != nil {
-			panic(err)
+			log.Println(err)
 		}
 
 		for range time.Tick(time.Second) {
@@ -33,7 +34,7 @@ func detector(id int) func(*amqp.Channel, amqp.Queue) {
 					Body:        data,
 				},
 			); err != nil {
-				panic(err)
+				log.Println(err)
 			}
 		}
 	}
@@ -43,13 +44,13 @@ func main() {
 	config := lib.LoadConfig[config.Config]()
 	conn, err := amqp.Dial(config.MQaddr)
 	if err != nil {
-		panic(err)
+		log.Println(err)
 	}
 	defer conn.Close()
 
 	ch, err := conn.Channel()
 	if err != nil {
-		panic(err)
+		log.Println(err)
 	}
 	defer ch.Close()
 
@@ -62,12 +63,12 @@ func main() {
 		nil,
 	)
 	if err != nil {
-		panic(err)
+		log.Println(err)
 	}
 
 	// 根据配置模拟若干个采集终端
 	for i := range make([]int, config.DetectorCount) {
-		go detector(i)(ch, q)
+		detector(i)(ch, q)
 	}
 
 }

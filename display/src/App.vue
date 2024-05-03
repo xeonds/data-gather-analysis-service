@@ -1,16 +1,25 @@
 <template>
     <el-main>
-        <el-button @click="id++">+</el-button>
-        <el-button @click="id--">-</el-button>
+        <div>
+            <el-button @click="id++">+</el-button>
+            <span>{{ id }}</span>
+            <el-button @click="id--">-</el-button>
+        </div>
+        <div>
+            <el-input :model="url" placeholder="ws://localhost:8001/ws" />
+            <el-button @click="conn()">conn</el-button>
+        </div>
+
         <p>{{ content }}</p>
     </el-main>
 </template>
 
 <script lang="ts" setup>
-import { onMounted, ref } from 'vue'
+import { Ref, onMounted, ref } from 'vue'
 
 const content = ref('')
 const id = ref(0)
+const ws: Ref<WebSocket> = ref({} as WebSocket)
 const url = ref('ws://localhost:8001/ws')
 const initWebSocket = (addr: string, callback: Function) => {
     const socket = new WebSocket(addr)
@@ -26,10 +35,11 @@ const initWebSocket = (addr: string, callback: Function) => {
     })
     return socket
 }
-
-onMounted(() =>
-    initWebSocket(url.value, (data: string) =>
+const conn = () => {
+    ws.value = initWebSocket(url.value, (data: string) =>
         content.value += data
     )
-);
+}
+
+onMounted(() => conn());
 </script>

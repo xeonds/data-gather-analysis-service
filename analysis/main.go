@@ -5,6 +5,7 @@ import (
 	"data-gather-analysis-service/lib"
 	"data-gather-analysis-service/model"
 	"encoding/json"
+	"log"
 
 	"github.com/streadway/amqp"
 	"gorm.io/gorm"
@@ -17,13 +18,14 @@ func main() {
 	})
 	conn, err := amqp.Dial(config.MQaddr)
 	if err != nil {
-		panic(err)
+		log.Println(err)
+
 	}
 	defer conn.Close()
 
 	ch, err := conn.Channel()
 	if err != nil {
-		panic(err)
+		log.Println(err)
 	}
 	defer ch.Close()
 
@@ -36,7 +38,7 @@ func main() {
 		nil,
 	)
 	if err != nil {
-		panic(err)
+		log.Println(err)
 	}
 
 	msgs, err := ch.Consume(
@@ -49,19 +51,19 @@ func main() {
 		nil,
 	)
 	if err != nil {
-		panic(err)
+		log.Println(err)
 	}
 
 	go func() {
 		for msg := range msgs {
 			recv := new(model.Data)
 			if err := json.Unmarshal(msg.Body, recv); err != nil {
-				panic(err)
+				log.Println(err)
 			}
 			result := analysis(db)(recv)
 			data, _ := json.Marshal(result)
 
-			err := ch.Publish(
+			if err := ch.Publish(
 				"",
 				q.Name,
 				false,
@@ -70,9 +72,8 @@ func main() {
 					ContentType: "application/json",
 					Body:        data,
 				},
-			)
-			if err != nil {
-				panic(err)
+			); err != nil {
+				log.Println(err)
 			}
 		}
 	}()

@@ -4,6 +4,7 @@ import (
 	"data-gather-analysis-service/config"
 	"data-gather-analysis-service/lib"
 	"fmt"
+	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -19,12 +20,14 @@ func handleWebSocket(conn *amqp.Connection) gin.HandlerFunc {
 			},
 		}).Upgrade(c.Writer, c.Request, nil)
 		if err != nil {
+			log.Println(err)
 			return
 		}
 		defer srcConn.Close()
 
 		ch, err := conn.Channel()
 		if err != nil {
+			log.Println(err)
 			return
 		}
 		defer ch.Close()
@@ -38,6 +41,7 @@ func handleWebSocket(conn *amqp.Connection) gin.HandlerFunc {
 			nil,              // arguments
 		)
 		if err != nil {
+			log.Println(err)
 			return
 		}
 
@@ -51,6 +55,7 @@ func handleWebSocket(conn *amqp.Connection) gin.HandlerFunc {
 			nil,    // args
 		)
 		if err != nil {
+			log.Println(err)
 			return
 		}
 
@@ -58,6 +63,7 @@ func handleWebSocket(conn *amqp.Connection) gin.HandlerFunc {
 			for msg := range msgs {
 				err := srcConn.WriteMessage(websocket.TextMessage, msg.Body)
 				if err != nil {
+					log.Println(err)
 					return
 				}
 			}
@@ -69,7 +75,7 @@ func main() {
 	config := lib.LoadConfig[config.Config]()
 	conn, err := amqp.Dial(config.MQaddr)
 	if err != nil {
-		panic(err)
+		log.Println(err)
 	}
 	defer conn.Close()
 
