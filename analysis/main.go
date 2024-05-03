@@ -3,27 +3,30 @@ package main
 import (
 	"data-gather-analysis-service/config"
 	"data-gather-analysis-service/lib"
-	"fmt"
+	"data-gather-analysis-service/model"
+	"encoding/json"
 
 	"github.com/streadway/amqp"
+	"gorm.io/gorm"
 )
 
 func main() {
 	config := lib.LoadConfig[config.Config]()
+	db := lib.NewDB(&config.DatabaseConfig, func(db *gorm.DB) error {
+		return db.AutoMigrate(&model.Data{}, &model.Analysis{})
+	})
 	conn, err := amqp.Dial(config.MQaddr)
 	if err != nil {
 		panic(err)
 	}
 	defer conn.Close()
 
-	// 创建一个通道
 	ch, err := conn.Channel()
 	if err != nil {
 		panic(err)
 	}
 	defer ch.Close()
 
-	// 声明一个消息队列
 	q, err := ch.QueueDeclare(
 		"analysis_queue",
 		false,
@@ -36,7 +39,6 @@ func main() {
 		panic(err)
 	}
 
-	// 从数据队列接收数据，执行分析，并发布结果到消息队列
 	msgs, err := ch.Consume(
 		"data_queue",
 		"",
@@ -52,19 +54,21 @@ func main() {
 
 	go func() {
 		for msg := range msgs {
-			data := string(msg.Body) // 接收到的数据
-			// 进行分析计算
-			// ...
+			recv := new(model.Data)
+			if err := json.Unmarshal(msg.Body, recv); err != nil {
+				panic(err)
+			}
+			result := analysis(db)(recv)
+			data, _ := json.Marshal(result)
 
-			// 发布分析结果到消息队列
 			err := ch.Publish(
 				"",
 				q.Name,
 				false,
 				false,
 				amqp.Publishing{
-					ContentType: "text/plain",
-					Body:        []byte(fmt.Sprintf("Analysis Result for %s", data)),
+					ContentType: "application/json",
+					Body:        data,
 				},
 			)
 			if err != nil {
@@ -73,6 +77,44 @@ func main() {
 		}
 	}()
 
-	// 循环等待
 	select {}
+}
+
+func analysis(db *gorm.DB) func(data *model.Data) *model.Analysis {
+	return func(data *model.Data) *model.Analysis {
+		var sum float64
+		db.Create(&data)
+		dataSet := make([]model.Data, 0)
+		db.Where("id = ?", data.ID).Find(&dataSet)
+		for _, d := range dataSet {
+			sum += d.Data
+		}
+
+		avg := sum / float64(len(dataSet))
+
+		var variance float64
+		for _, d := range dataSet {
+			variance += (d.Data - avg) * (d.Data - avg)
+		}
+		variance /= float64(len(dataSet))
+
+		max := dataSet[0].Data
+		min := dataSet[0].Data
+		for _, d := range dataSet {
+			if d.Data > max {
+				max = d.Data
+			}
+			if d.Data < min {
+				min = d.Data
+			}
+		}
+
+		return &model.Analysis{
+			ID:       dataSet[0].ID,
+			Max:      max,
+			Min:      min,
+			Avg:      avg,
+			Variance: variance,
+		}
+	}
 }

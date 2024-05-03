@@ -1,30 +1,35 @@
-<script setup lang="ts">
-import HelloWorld from './components/HelloWorld.vue'
-</script>
-
 <template>
-  <div>
-    <a href="https://vitejs.dev" target="_blank">
-      <img src="/vite.svg" class="logo" alt="Vite logo" />
-    </a>
-    <a href="https://vuejs.org/" target="_blank">
-      <img src="./assets/vue.svg" class="logo vue" alt="Vue logo" />
-    </a>
-  </div>
-  <HelloWorld msg="Vite + Vue" />
+    <el-main>
+        <el-button @click="id++">+</el-button>
+        <el-button @click="id--">-</el-button>
+        <p>{{ content }}</p>
+    </el-main>
 </template>
 
-<style scoped>
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
+<script lang="ts" setup>
+import { onMounted, ref } from 'vue'
+
+const content = ref('')
+const id = ref(0)
+const url = ref('ws://localhost:8001/ws')
+const initWebSocket = (addr: string, callback: Function) => {
+    const socket = new WebSocket(addr)
+    socket.addEventListener('open', () => {
+        console.log('connected')
+    })
+    socket.addEventListener('close', () => {
+        console.log('disconnected')
+    })
+    socket.addEventListener('message', (event) => {
+        console.log(event.data);
+        callback(event.data);
+    })
+    return socket
 }
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.vue:hover {
-  filter: drop-shadow(0 0 2em #42b883aa);
-}
-</style>
+
+onMounted(() =>
+    initWebSocket(url.value, (data: string) =>
+        content.value += data
+    )
+);
+</script>

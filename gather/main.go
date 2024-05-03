@@ -3,12 +3,41 @@ package main
 import (
 	"data-gather-analysis-service/config"
 	"data-gather-analysis-service/lib"
-	"fmt"
+	"data-gather-analysis-service/model"
+	"encoding/json"
 	"math/rand"
 	"time"
 
 	"github.com/streadway/amqp"
 )
+
+func detector(id int) func(*amqp.Channel, amqp.Queue) {
+	return func(ch *amqp.Channel, q amqp.Queue) {
+		msg := model.Data{
+			ID:   id,
+			Data: rand.Float64(),
+		}
+		data, err := json.Marshal(msg)
+		if err != nil {
+			panic(err)
+		}
+
+		for range time.Tick(time.Second) {
+			if err = ch.Publish(
+				"",
+				q.Name,
+				false,
+				false,
+				amqp.Publishing{
+					ContentType: "application/json",
+					Body:        data,
+				},
+			); err != nil {
+				panic(err)
+			}
+		}
+	}
+}
 
 func main() {
 	config := lib.LoadConfig[config.Config]()
@@ -36,21 +65,9 @@ func main() {
 		panic(err)
 	}
 
-	for {
-		data := rand.Float64() // 随机生成数据
-		err := ch.Publish(
-			"",
-			q.Name,
-			false,
-			false,
-			amqp.Publishing{
-				ContentType: "text/plain",
-				Body:        []byte(fmt.Sprintf("%f", data)),
-			},
-		)
-		if err != nil {
-			panic(err)
-		}
-		time.Sleep(100 * time.Millisecond)
+	// 根据配置模拟若干个采集终端
+	for i := range make([]int, config.DetectorCount) {
+		go detector(i)(ch, q)
 	}
+
 }
