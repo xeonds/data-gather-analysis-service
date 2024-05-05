@@ -1,8 +1,9 @@
 package model
 
 type Data struct {
-	ID   int     // ID，用于设备标识
-	Data float64 // 数据
+	DataID int     `gorm:"primaryKey,autoIncrement"` // 数据ID
+	ID     int     // ID，用于设备标识
+	Data   float64 // 数据
 }
 
 type Analysis struct {

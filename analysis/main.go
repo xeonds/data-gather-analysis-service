@@ -54,29 +54,27 @@ func main() {
 		log.Println(err)
 	}
 
-	go func() {
-		for msg := range msgs {
-			recv := new(model.Data)
-			if err := json.Unmarshal(msg.Body, recv); err != nil {
-				log.Println(err)
-			}
-			result := analysis(db)(recv)
-			data, _ := json.Marshal(result)
-
-			if err := ch.Publish(
-				"",
-				q.Name,
-				false,
-				false,
-				amqp.Publishing{
-					ContentType: "application/json",
-					Body:        data,
-				},
-			); err != nil {
-				log.Println(err)
-			}
+	for msg := range msgs {
+		recv := new(model.Data)
+		if err := json.Unmarshal(msg.Body, recv); err != nil {
+			log.Println(err)
 		}
-	}()
+		result := analysis(db)(recv)
+		data, _ := json.Marshal(result)
+
+		if err := ch.Publish(
+			"",
+			q.Name,
+			false,
+			false,
+			amqp.Publishing{
+				ContentType: "application/json",
+				Body:        data,
+			},
+		); err != nil {
+			log.Println(err)
+		}
+	}
 
 	select {}
 }
@@ -99,8 +97,11 @@ func analysis(db *gorm.DB) func(data *model.Data) *model.Analysis {
 		}
 		variance /= float64(len(dataSet))
 
-		max := dataSet[0].Data
-		min := dataSet[0].Data
+		max, min := 0.0, 0.0
+		if len(dataSet) > 0 {
+			max = dataSet[0].Data
+			min = dataSet[0].Data
+		}
 		for _, d := range dataSet {
 			if d.Data > max {
 				max = d.Data
