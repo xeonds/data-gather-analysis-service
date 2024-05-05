@@ -36,6 +36,7 @@ func detector(id int) func(*amqp.Channel, amqp.Queue) {
 			); err != nil {
 				log.Println(err)
 			}
+			log.Println("detector", id, "send data:", msg.Data)
 		}
 	}
 }
@@ -44,15 +45,17 @@ func main() {
 	config := lib.LoadConfig[config.Config]()
 	conn, err := amqp.Dial(config.MQaddr)
 	if err != nil {
-		log.Println(err)
+		panic(err)
 	}
+	log.Println("connect to rabbitmq success")
 	defer conn.Close()
 
 	ch, err := conn.Channel()
 	if err != nil {
-		log.Println(err)
+		panic(err)
 	}
 	defer ch.Close()
+	log.Println("open channel success")
 
 	q, err := ch.QueueDeclare(
 		"data_queue",
@@ -65,10 +68,14 @@ func main() {
 	if err != nil {
 		log.Println(err)
 	}
+	log.Println("declare queue success")
 
 	// 根据配置模拟若干个采集终端
-	for i := range make([]int, config.DetectorCount) {
-		detector(i)(ch, q)
+	log.Println(config.DetectorCount, "detector(s) will be started")
+	for i := 0; i < config.DetectorCount; i++ {
+		log.Println("start detector", i)
+		go detector(i)(ch, q)
 	}
 
+	select {}
 }
