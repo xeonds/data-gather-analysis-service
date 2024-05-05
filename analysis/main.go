@@ -74,6 +74,7 @@ func main() {
 		); err != nil {
 			log.Println(err)
 		}
+		log.Println("Analysis data:", string(data))
 	}
 
 	select {}
@@ -84,7 +85,7 @@ func analysis(db *gorm.DB) func(data *model.Data) *model.Analysis {
 		var sum float64
 		db.Create(&data)
 		dataSet := make([]model.Data, 0)
-		db.Where("id = ?", data.ID).Find(&dataSet)
+		db.Where("device = ?", data.Device).Find(&dataSet)
 		for _, d := range dataSet {
 			sum += d.Data
 		}
@@ -112,7 +113,7 @@ func analysis(db *gorm.DB) func(data *model.Data) *model.Analysis {
 		}
 
 		return &model.Analysis{
-			ID:       dataSet[0].ID,
+			Device:   dataSet[0].Device,
 			Max:      max,
 			Min:      min,
 			Avg:      avg,

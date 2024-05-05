@@ -15,8 +15,8 @@ import (
 func detector(id int) func(*amqp.Channel, amqp.Queue) {
 	return func(ch *amqp.Channel, q amqp.Queue) {
 		msg := model.Data{
-			ID:   id,
-			Data: rand.Float64(),
+			Device: id,
+			Data:   rand.Float64(),
 		}
 		data, err := json.Marshal(msg)
 		if err != nil {
