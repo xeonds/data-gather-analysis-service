@@ -32,8 +32,6 @@ const fetchDeviceList = () =>
         .then(data => deviceList.value = Array.from({ length: data.count }, (_, i) => ({ id: i, name: `设备${i}` })))
         .catch(error => console.error('Error fetching device list:', error));
 
-const switchDisplayDevice = () => analysisData.value = data.value[selectedDevice.value];
-
 const initWebSocket = (addr: string, callback: Function) => {
     const socket = new WebSocket(addr)
     socket.addEventListener('open', () => {
@@ -48,6 +46,7 @@ const initWebSocket = (addr: string, callback: Function) => {
     })
     return socket
 }
+
 const conn = () => {
     ws.value = initWebSocket(
         url.value,
@@ -58,22 +57,21 @@ const conn = () => {
         })
 }
 
-watch(selectedDevice, () => switchDisplayDevice());
+watch(selectedDevice, () => analysisData.value = data.value[selectedDevice.value]);
+
 watch(analysisData, () => {
-    if (analysisData.value) {
-        chart.value.setOption({
-            title: { text: '数据分析图表' },
-            xAxis: {
-                type: 'category',
-                data: ['Max', 'Min', 'Avg', 'Variance']
-            },
-            yAxis: { type: 'value' },
-            series: [{
-                data: [analysisData.value.Max, analysisData.value.Min, analysisData.value.Avg, analysisData.value.Variance],
-                type: 'bar'
-            }]
-        });
-    }
+    if (analysisData.value) chart.value.setOption({
+        title: { text: '数据分析图表' },
+        xAxis: {
+            type: 'category',
+            data: ['Max', 'Min', 'Avg', 'Variance']
+        },
+        yAxis: { type: 'value' },
+        series: [{
+            data: [analysisData.value.Max, analysisData.value.Min, analysisData.value.Avg, analysisData.value.Variance],
+            type: 'bar'
+        }]
+    });
 }, { deep: true });
 
 onMounted(() => {
