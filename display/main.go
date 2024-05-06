@@ -12,6 +12,22 @@ import (
 	"github.com/streadway/amqp"
 )
 
+func main() {
+	config := lib.LoadConfig[config.Config]()
+	conn, err := amqp.Dial(config.MQaddr)
+	if err != nil {
+		log.Println(err)
+	}
+	defer conn.Close()
+
+	router := gin.Default()
+	router.GET("/ws", handleWebSocket(conn))
+	router.GET("/count", handleGetCount(config))
+	router.NoRoute(gin.WrapH(http.FileServer(http.Dir("dist/"))))
+
+	panic(router.Run(fmt.Sprint(":", config.Port.Display)))
+}
+
 func handleWebSocket(conn *amqp.Connection) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		srcConn, err := (&websocket.Upgrader{
@@ -59,29 +75,20 @@ func handleWebSocket(conn *amqp.Connection) gin.HandlerFunc {
 			return
 		}
 
-		go func() {
-			for msg := range msgs {
-				err := srcConn.WriteMessage(websocket.TextMessage, msg.Body)
-				if err != nil {
-					log.Println(err)
-					return
-				}
+		for msg := range msgs {
+			err := srcConn.WriteMessage(websocket.TextMessage, msg.Body)
+			if err != nil {
+				log.Println(err)
+				return
 			}
-		}()
+		}
+		select {}
 	}
 }
 
-func main() {
-	config := lib.LoadConfig[config.Config]()
-	conn, err := amqp.Dial(config.MQaddr)
-	if err != nil {
-		log.Println(err)
+func handleGetCount(config *config.Config) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.JSON(200, gin.H{
+			"count": config.DetectorCount})
 	}
-	defer conn.Close()
-
-	router := gin.Default()
-	router.GET("/ws", handleWebSocket(conn))
-	router.NoRoute(gin.WrapH(http.FileServer(http.Dir("dist/"))))
-
-	panic(router.Run(fmt.Sprint(":", config.Port.Display)))
 }
